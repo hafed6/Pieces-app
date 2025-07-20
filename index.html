@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recherche de pièce détachée</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff;
+      margin: 20px;
+      color: #000;
+    }
+    h1 {
+      text-align: center;
+      color: #007acc;
+    }
+    #search-container, #add-container {
+      max-width: 600px;
+      margin: 10px auto;
+    }
+    input[type="text"] {
+      width: calc(100% - 110px);
+      font-size: 18px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 15px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+    }
+    #btn-search { background-color: #3399ff; }
+    #btn-show-add {
+      background-color: #28a745;
+      margin-top: 20px;
+    }
+    #results {
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    .result-item {
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .result-item img {
+      width: 120px;
+      height: 80px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #f0f0f0;
+    }
+    .result-info { flex-grow: 1; }
+    .result-info strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .result-info p {
+      margin: 0;
+      font-size: 16px;
+    }
+    .btn-delete {
+      background-color: #cc3333;
+      padding: 8px 12px;
+      font-size: 16px;
+    }
+    #add-form {
+      display: none;
+      max-width: 600px;
+      margin: 0 auto 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    #add-form label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    #add-form input[type="text"], #add-form input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 6px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    #add-form button {
+      margin-top: 15px;
+      background-color: #007acc;
+    }
+    #img-preview {
+      max-width: 120px;
+      margin-top: 10px;
+      display: none;
+      border-radius:6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Recherche de pièce détachée</h1>
+  <div id="search-container">
+    <input type="text" id="search-input" placeholder="Numéro de pièce ou description..." />
+    <button id="btn-search">Chercher</button>
+    <button id="btn-show-add">Ajouter une pièce</button>
+  </div>
+  <div id="add-form">
+    <label for="ref-input">Numéro de pièce</label>
+    <input type="text" id="ref-input" placeholder="Ex: 0280218002" />
+    <label for="desc-input">Description</label>
+    <input type="text" id="desc-input" placeholder="Description de la pièce" />
+    <label for="img-file-input">Choisir une image depuis la galerie</label>
+    <input type="file" id="img-file-input" accept="image/*" />
+    <img id="img-preview" src="" alt="Aperçu de l'image" />
+    <button id="btn-add">Valider</button>
+  </div>
+  <div id="results"></div>
+
+  <!-- SCRIPT -->
+  <script type="module">
+    // 1) استيراد Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // 2) ضع هنا إعدادات مشروعك من Firebase
+    const firebaseConfig = {
+      apiKey: "VOTRE-API-KEY",
+      authDomain: "auto-app.firebaseapp.com",
+      databaseURL: "https://auto-app-default-rtdb.firebaseio.com",
+      projectId: "auto-app",
+      storageBucket: "auto-app.appspot.com",
+      messagingSenderId: "XXXXXXX",
+      appId: "XXXXXXXX"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 3) بيانات محلية
+    let pieces = JSON.parse(localStorage.getItem('pieces')) || [];
+    const searchInput = document.getElementById('search-input');
+    const resultsDiv = document.getElementById('results');
+    const addForm = document.getElementById('add-form');
+    const btnShowAdd = document.getElementById('btn-show-add');
+    const btnAdd = document.getElementById('btn-add');
+    const imgFileInput = document.getElementById('img-file-input');
+    const imgPreview = document.getElementById('img-preview');
+    let imageBase64 = '';
+
+    imgFileInput.addEventListener('change', () => {
+      const file = imgFileInput.files[0];
+      if(file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          imageBase64 = e.target.result;
+          imgPreview.src = imageBase64;
+          imgPreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        imageBase64 = '';
+        imgPreview.src = '';
+        imgPreview.style.display = 'none';
+      }
+    });
+
+    function sauvegarderPieces() {
+      localStorage.setItem('pieces', JSON.stringify(pieces));
+    }
+
+    async function syncToCloud(item) {
+      try {
+        await set(ref(db, 'pieces/' + item.ref), {
+          description: item.description,
+          image: item.image || ''
+        });
+      } catch (err) {
+        console.error('Erreur cloud:', err);
+      }
+    }
+
+    async function deleteFromCloud(refId) {
+      try {
+        await remove(ref(db, 'pieces/' + refId));
+      } catch (err) {
+        console.error('Erreur suppression cloud:', err);
+      }
+    }
+
+    async function loadFromCloud() {
+      try {
+        const snapshot = await get(child(ref(db), 'pieces'));
+        if (snapshot.exists()) {
+          const cloudData = snapshot.val();
+          Object.keys(cloudData).forEach(r => {
+            if (!pieces.some(p => p.ref === r)) {
+              pieces.push({ ref: r, description: cloudData[r].description, image: cloudData[r].image });
+            }
+          });
+          sauvegarderPieces();
+        }
+      } catch (err) {
+        console.error('Erreur chargement:', err);
+      }
+    }
+
+    function afficherResultats(filter='') {
+      resultsDiv.innerHTML = '';
+      const searchLower = filter.toLowerCase();
+      const filtered = pieces.filter(item =>
+        item.ref.toLowerCase().includes(searchLower) || item.description.toLowerCase().includes(searchLower)
+      );
+      if(filtered.length === 0){
+        resultsDiv.innerHTML = '<p style="text-align:center; color:#777;">Aucun résultat trouvé.</p>';
+        return;
+      }
+      filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        const img = document.createElement('img');
+        img.src = item.image || 'https://via.placeholder.com/120x80?text=No+Image';
+        img.alt = item.ref;
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'result-info';
+        const refStrong = document.createElement('strong');
+        refStrong.textContent = 'Référence : ' + item.ref;
+        const descP = document.createElement('p');
+        descP.textContent = item.description;
+        infoDiv.appendChild(refStrong);
+        infoDiv.appendChild(descP);
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn-delete';
+        btnDel.textContent = 'Supprimer';
+        btnDel.onclick = () => {
+          if(confirm(`Supprimer la pièce "${item.ref}" ?`)) {
+            pieces = pieces.filter(p => p.ref !== item.ref);
+            sauvegarderPieces();
+            deleteFromCloud(item.ref);
+            afficherResultats(searchInput.value);
+          }
+        };
+        div.appendChild(img);
+        div.appendChild(infoDiv);
+        div.appendChild(btnDel);
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    btnAdd.onclick = async () => {
+      const refVal = document.getElementById('ref-input').value.trim();
+      const descVal = document.getElementById('desc-input').value.trim();
+      if(!refVal || !descVal) { alert('Veuillez remplir tous les champs.'); return; }
+      if(pieces.some(p => p.ref === refVal)) { alert('Cette référence existe déjà.'); return; }
+      const newItem = {ref: refVal, description: descVal, image: imageBase64};
+      pieces.push(newItem);
+      sauvegarderPieces();
+      await syncToCloud(newItem);
+      afficherResultats(searchInput.value);
+      document.getElementById('ref-input').value = '';
+      document.getElementById('desc-input').value = '';
+      imgFileInput.value = '';
+      imgPreview.style.display = 'none';
+      imageBase64 = '';
+      addForm.style.display = 'none';
+    };
+
+    btnShowAdd.onclick = () => {
+      addForm.style.display = (addForm.style.display === 'none') ? 'block' : 'none';
+    };
+
+    document.getElementById('btn-search').onclick = () => afficherResultats(searchInput.value);
+    searchInput.addEventListener('keyup', () => afficherResultats(searchInput.value));
+
+    (async function init(){
+      await loadFromCloud();
+      afficherResultats();
+    })();
+  </script>
+</body>
+</html>
