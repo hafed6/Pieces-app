@@ -1,292 +1,283 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Recherche de pièce détachée</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #fff;
-      margin: 20px;
-      color: #000;
-    }
-    h1 {
-      text-align: center;
-      color: #007acc;
-    }
-    #search-container, #add-container {
-      max-width: 600px;
-      margin: 10px auto;
-    }
-    input[type="text"] {
-      width: calc(100% - 110px);
-      font-size: 18px;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      box-sizing: border-box;
-    }
-    button {
-      font-size: 18px;
-      padding: 10px 15px;
-      margin-left: 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      color: white;
-    }
-    #btn-search { background-color: #3399ff; }
-    #btn-show-add {
-      background-color: #28a745;
-      margin-top: 20px;
-    }
-    #results {
-      max-width: 600px;
-      margin: 20px auto;
-    }
-    .result-item {
-      border: 1px solid #ddd;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-    .result-item img {
-      width: 120px;
-      height: 80px;
-      object-fit: contain;
-      border-radius: 6px;
-      background: #f0f0f0;
-    }
-    .result-info { flex-grow: 1; }
-    .result-info strong {
-      display: block;
-      font-size: 18px;
-      margin-bottom: 6px;
-    }
-    .result-info p {
-      margin: 0;
-      font-size: 16px;
-    }
-    .btn-delete {
-      background-color: #cc3333;
-      padding: 8px 12px;
-      font-size: 16px;
-    }
-    #add-form {
-      display: none;
-      max-width: 600px;
-      margin: 0 auto 20px;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    #add-form label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    #add-form input[type="text"], #add-form input[type="file"] {
-      width: 100%;
-      padding: 8px;
-      margin-top: 6px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-    #add-form button {
-      margin-top: 15px;
-      background-color: #007acc;
-    }
-    #img-preview {
-      max-width: 120px;
-      margin-top: 10px;
-      display: none;
-      border-radius:6px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recherche de pièce détachée</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #fff; margin: 20px; color: #000; }
+  h1 { text-align: center; color: #007acc; margin-bottom: 30px; }
+
+  #search-container {
+    max-width: 600px;
+    margin: 0 auto 20px auto;
+  }
+  
+  input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+  }
+  
+  #buttons-wrapper {
+    max-width: 320px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+  }
+  
+  .button-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  button {
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    font-size: 16px;
+    width: 150px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+  }
+  
+  #btn-search { background-color: #3399ff; }
+  #btn-download { background-color: #ff9800; }
+  #btn-import { background-color: #673ab7; }
+  #btn-show-add { background-color: #28a745; }
+  
+  #results {
+    max-width: 600px;
+    margin: 30px auto;
+  }
+  
+  #add-form {
+    display: none;
+    max-width: 600px;
+    margin: 0 auto 20px auto;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+  }
+  
+  #img-preview {
+    max-width: 120px;
+    margin-top: 10px;
+    display: none;
+    border-radius: 6px;
+  }
+  
+  .result-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+</style>
 </head>
 <body>
-  <h1>Recherche de pièce détachée</h1>
-  <div id="search-container">
-    <input type="text" id="search-input" placeholder="Numéro de pièce ou description..." />
+
+<h1>Recherche de pièce détachée</h1>
+
+<div id="search-container">
+  <input type="text" id="search-input" placeholder="Numéro de pièce ou description..." />
+</div>
+
+<div id="buttons-wrapper">
+  <div class="button-column">
     <button id="btn-search">Chercher</button>
+    <button id="btn-download">Télécharger pieces.json</button>
+  </div>
+  <div class="button-column">
+    <button id="btn-import">Importer pieces.json</button>
     <button id="btn-show-add">Ajouter une pièce</button>
   </div>
-  <div id="add-form">
-    <label for="ref-input">Numéro de pièce</label>
-    <input type="text" id="ref-input" placeholder="Ex: 0280218002" />
-    <label for="desc-input">Description</label>
-    <input type="text" id="desc-input" placeholder="Description de la pièce" />
-    <label for="img-file-input">Choisir une image depuis la galerie</label>
-    <input type="file" id="img-file-input" accept="image/*" />
-    <img id="img-preview" src="" alt="Aperçu de l'image" />
-    <button id="btn-add">Valider</button>
-  </div>
-  <div id="results"></div>
+</div>
 
-  <!-- SCRIPT -->
-  <script type="module">
-    // 1) استيراد Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+<div style="max-width: 600px; margin: 20px auto;">
+  <input type="file" id="file-input" accept="application/json" style="display:none;" />
+</div>
 
-    // 2) ضع هنا إعدادات مشروعك من Firebase
-    const firebaseConfig = {
-      apiKey: "VOTRE-API-KEY",
-      authDomain: "auto-app.firebaseapp.com",
-      databaseURL: "https://auto-app-default-rtdb.firebaseio.com",
-      projectId: "auto-app",
-      storageBucket: "auto-app.appspot.com",
-      messagingSenderId: "XXXXXXX",
-      appId: "XXXXXXXX"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+<div id="add-form">
+  <label for="ref-input">Numéro de pièce</label>
+  <input type="text" id="ref-input" placeholder="Ex: 0280218002" /><br/>
+  <label for="desc-input">Description</label>
+  <input type="text" id="desc-input" placeholder="Description de la pièce" /><br/>
+  <label for="img-file-input">Image</label>
+  <input type="file" id="img-file-input" accept="image/*" /><br/>
+  <img id="img-preview" />
+  <button id="btn-add" style="background:#007acc; width: 150px; height: 40px;">Valider</button>
+</div>
 
-    // 3) بيانات محلية
-    let pieces = JSON.parse(localStorage.getItem('pieces')) || [];
-    const searchInput = document.getElementById('search-input');
-    const resultsDiv = document.getElementById('results');
-    const addForm = document.getElementById('add-form');
-    const btnShowAdd = document.getElementById('btn-show-add');
-    const btnAdd = document.getElementById('btn-add');
-    const imgFileInput = document.getElementById('img-file-input');
-    const imgPreview = document.getElementById('img-preview');
-    let imageBase64 = '';
+<div id="results"></div>
 
-    imgFileInput.addEventListener('change', () => {
-      const file = imgFileInput.files[0];
-      if(file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          imageBase64 = e.target.result;
-          imgPreview.src = imageBase64;
-          imgPreview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      } else {
-        imageBase64 = '';
-        imgPreview.src = '';
-        imgPreview.style.display = 'none';
-      }
-    });
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let pieces = [];
+  let imageBase64 = '';
 
-    function sauvegarderPieces() {
-      localStorage.setItem('pieces', JSON.stringify(pieces));
-    }
+  const searchInput = document.getElementById('search-input');
+  const resultsDiv = document.getElementById('results');
+  const btnSearch = document.getElementById('btn-search');
+  const btnShowAdd = document.getElementById('btn-show-add');
+  const btnAdd = document.getElementById('btn-add');
+  const addForm = document.getElementById('add-form');
+  const imgFileInput = document.getElementById('img-file-input');
+  const imgPreview = document.getElementById('img-preview');
 
-    async function syncToCloud(item) {
+  const btnDownload = document.getElementById('btn-download');
+  const btnImport = document.getElementById('btn-import');
+  const fileInput = document.getElementById('file-input');
+
+  function loadDefaultData() {
+    return [
+      { ref: "0280218002", description: "Débitmètre Bosch - capteur de masse d'air", image: "" },
+      { ref: "1234567890", description: "Capteur de température moteur", image: "" },
+      { ref: "9876543210", description: "Injecteur haute pression", image: "" }
+    ];
+  }
+
+  function saveToLocalStorage() {
+    localStorage.setItem('pieces', JSON.stringify(pieces));
+  }
+
+  function loadFromLocalStorage() {
+    const data = localStorage.getItem('pieces');
+    if (data) {
       try {
-        await set(ref(db, 'pieces/' + item.ref), {
-          description: item.description,
-          image: item.image || ''
-        });
-      } catch (err) {
-        console.error('Erreur cloud:', err);
+        pieces = JSON.parse(data);
+        return true;
+      } catch {
+        pieces = [];
       }
     }
+    return false;
+  }
 
-    async function deleteFromCloud(refId) {
-      try {
-        await remove(ref(db, 'pieces/' + refId));
-      } catch (err) {
-        console.error('Erreur suppression cloud:', err);
-      }
+  function afficherResultats(filter='') {
+    resultsDiv.innerHTML = '';
+    const searchLower = filter.toLowerCase();
+    const filtered = pieces.filter(item =>
+      item.ref.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower)
+    );
+    if (filtered.length === 0) {
+      resultsDiv.innerHTML = '<p style="color:#777;text-align:center;">Aucun résultat trouvé.</p>';
+      return;
     }
-
-    async function loadFromCloud() {
-      try {
-        const snapshot = await get(child(ref(db), 'pieces'));
-        if (snapshot.exists()) {
-          const cloudData = snapshot.val();
-          Object.keys(cloudData).forEach(r => {
-            if (!pieces.some(p => p.ref === r)) {
-              pieces.push({ ref: r, description: cloudData[r].description, image: cloudData[r].image });
-            }
-          });
-          sauvegarderPieces();
+    filtered.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      div.innerHTML = `
+        <img src="${item.image || 'https://via.placeholder.com/120x80?text=No+Image'}" width="120" height="80" style="object-fit:contain;">
+        <div style="flex-grow:1;">
+          <strong>Référence : ${item.ref}</strong><br>
+          <p>${item.description}</p>
+        </div>
+        <button class="btn-delete" style="background:#cc3333; border:none; border-radius:6px; width:100px; height:30px; cursor:pointer;">Supprimer</button>
+      `;
+      div.querySelector('.btn-delete').onclick = () => {
+        if (confirm("Supprimer la pièce " + item.ref + " ?")) {
+          pieces = pieces.filter(p => p !== item);
+          saveToLocalStorage();
+          afficherResultats(searchInput.value);
         }
-      } catch (err) {
-        console.error('Erreur chargement:', err);
-      }
+      };
+      resultsDiv.appendChild(div);
+    });
+  }
+
+  btnAdd.onclick = () => {
+    const ref = document.getElementById('ref-input').value.trim();
+    const desc = document.getElementById('desc-input').value.trim();
+    if (!ref || !desc) {
+      alert('Veuillez remplir tous les champs.');
+      return;
     }
+    // **حذفنا التحقق من التكرار**
+    pieces.push({ ref, description: desc, image: imageBase64 });
+    saveToLocalStorage();
+    afficherResultats(searchInput.value);
+    document.getElementById('ref-input').value = '';
+    document.getElementById('desc-input').value = '';
+    imgFileInput.value = '';
+    imgPreview.style.display = 'none';
+    imageBase64 = '';
+    addForm.style.display = 'none';
+  };
 
-    function afficherResultats(filter='') {
-      resultsDiv.innerHTML = '';
-      const searchLower = filter.toLowerCase();
-      const filtered = pieces.filter(item =>
-        item.ref.toLowerCase().includes(searchLower) || item.description.toLowerCase().includes(searchLower)
-      );
-      if(filtered.length === 0){
-        resultsDiv.innerHTML = '<p style="text-align:center; color:#777;">Aucun résultat trouvé.</p>';
-        return;
-      }
-      filtered.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'result-item';
-        const img = document.createElement('img');
-        img.src = item.image || 'https://via.placeholder.com/120x80?text=No+Image';
-        img.alt = item.ref;
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'result-info';
-        const refStrong = document.createElement('strong');
-        refStrong.textContent = 'Référence : ' + item.ref;
-        const descP = document.createElement('p');
-        descP.textContent = item.description;
-        infoDiv.appendChild(refStrong);
-        infoDiv.appendChild(descP);
-        const btnDel = document.createElement('button');
-        btnDel.className = 'btn-delete';
-        btnDel.textContent = 'Supprimer';
-        btnDel.onclick = () => {
-          if(confirm(`Supprimer la pièce "${item.ref}" ?`)) {
-            pieces = pieces.filter(p => p.ref !== item.ref);
-            sauvegarderPieces();
-            deleteFromCloud(item.ref);
-            afficherResultats(searchInput.value);
-          }
-        };
-        div.appendChild(img);
-        div.appendChild(infoDiv);
-        div.appendChild(btnDel);
-        resultsDiv.appendChild(div);
-      });
+  imgFileInput.onchange = () => {
+    const file = imgFileInput.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        imageBase64 = e.target.result;
+        imgPreview.src = imageBase64;
+        imgPreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
-    btnAdd.onclick = async () => {
-      const refVal = document.getElementById('ref-input').value.trim();
-      const descVal = document.getElementById('desc-input').value.trim();
-      if(!refVal || !descVal) { alert('Veuillez remplir tous les champs.'); return; }
-      if(pieces.some(p => p.ref === refVal)) { alert('Cette référence existe déjà.'); return; }
-      const newItem = {ref: refVal, description: descVal, image: imageBase64};
-      pieces.push(newItem);
-      sauvegarderPieces();
-      await syncToCloud(newItem);
-      afficherResultats(searchInput.value);
-      document.getElementById('ref-input').value = '';
-      document.getElementById('desc-input').value = '';
-      imgFileInput.value = '';
-      imgPreview.style.display = 'none';
-      imageBase64 = '';
-      addForm.style.display = 'none';
+  btnSearch.onclick = () => afficherResultats(searchInput.value);
+  searchInput.addEventListener('keyup', () => afficherResultats(searchInput.value));
+
+  btnShowAdd.onclick = () => {
+    addForm.style.display = addForm.style.display === 'block' ? 'none' : 'block';
+  };
+
+  btnDownload.onclick = () => {
+    const blob = new Blob([JSON.stringify(pieces.length ? pieces : loadDefaultData(), null, 2)], { type: "application/json" });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "pieces.json";
+    link.click();
+    saveToLocalStorage();
+  };
+
+  btnImport.onclick = () => fileInput.click();
+
+  fileInput.onchange = () => {
+    const file = fileInput.files[0];
+    if (!file) return alert("Aucun fichier sélectionné.");
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (Array.isArray(data)) {
+          pieces = data;
+          saveToLocalStorage();
+          afficherResultats();
+          alert("Fichier chargé avec succès !");
+        } else {
+          alert("Format de fichier invalide.");
+        }
+      } catch {
+        alert("Erreur lors de la lecture du fichier.");
+      }
     };
+    reader.readAsText(file);
+  };
 
-    btnShowAdd.onclick = () => {
-      addForm.style.display = (addForm.style.display === 'none') ? 'block' : 'none';
-    };
+  if (!loadFromLocalStorage()) {
+    pieces = loadDefaultData();
+    saveToLocalStorage();
+  }
+  afficherResultats();
+});
+</script>
 
-    document.getElementById('btn-search').onclick = () => afficherResultats(searchInput.value);
-    searchInput.addEventListener('keyup', () => afficherResultats(searchInput.value));
-
-    (async function init(){
-      await loadFromCloud();
-      afficherResultats();
-    })();
-  </script>
 </body>
 </html>
