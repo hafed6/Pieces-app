@@ -86,6 +86,9 @@
     margin-bottom: 10px;
   }
 </style>
+
+<!-- ذكاء اصطناعي محلي للبحث الضبابي (Fuzzy Search) -->
+<script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
 </head>
 <body>
 
@@ -125,22 +128,30 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  /* ----------------------------------
+     بيانات ومرجع للعناصر
+  ---------------------------------- */
   let pieces = [];
   let imageBase64 = '';
+  let fuse = null;          // محرك البحث الذكي
+  let fuseThreshold = 0.3;  // دقة البحث (أقل = أدق، أعلى = أشمل)
 
-  const searchInput = document.getElementById('search-input');
-  const resultsDiv = document.getElementById('results');
-  const btnSearch = document.getElementById('btn-search');
-  const btnShowAdd = document.getElementById('btn-show-add');
-  const btnAdd = document.getElementById('btn-add');
-  const addForm = document.getElementById('add-form');
-  const imgFileInput = document.getElementById('img-file-input');
-  const imgPreview = document.getElementById('img-preview');
+  const searchInput   = document.getElementById('search-input');
+  const resultsDiv    = document.getElementById('results');
+  const btnSearch     = document.getElementById('btn-search');
+  const btnShowAdd    = document.getElementById('btn-show-add');
+  const btnAdd        = document.getElementById('btn-add');
+  const addForm       = document.getElementById('add-form');
+  const imgFileInput  = document.getElementById('img-file-input');
+  const imgPreview    = document.getElementById('img-preview');
 
-  const btnDownload = document.getElementById('btn-download');
-  const btnImport = document.getElementById('btn-import');
-  const fileInput = document.getElementById('file-input');
+  const btnDownload   = document.getElementById('btn-download');
+  const btnImport     = document.getElementById('btn-import');
+  const fileInput     = document.getElementById('file-input');
 
+  /* ----------------------------------
+     بيانات افتراضية (fallback)
+  ---------------------------------- */
   function loadDefaultData() {
     return [
       { ref: "0280218002", description: "Débitmètre Bosch - capteur de masse d'air", image: "" },
@@ -149,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
   }
 
+  /* ----------------------------------
+     تخزين محلي
+  ---------------------------------- */
   function saveToLocalStorage() {
     localStorage.setItem('pieces', JSON.stringify(pieces));
   }
@@ -166,32 +180,155 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
-  function afficherResultats(filter='') {
+  /* ----------------------------------
+     ذكاء اصطناعي: بناء فهرس Fuse
+  ---------------------------------- */
+  function initFuse() {
+    fuse = new Fuse(pieces, {
+      keys: ['ref', 'description'],
+      includeScore: true,
+      threshold: fuseThreshold,  // يضبط مدى التسامح مع الأخطاء
+      ignoreLocation: true,
+      minMatchCharLength: 1
+    });
+  }
+
+  /* ----------------------------------
+     خريطة مرادفات بسيطة (ذكاء محلي)
+     يمكنك توسيعها حسب الحاجة
+  ---------------------------------- */
+  const synonymMap = {
+    moteur:      ['engine', 'mot', 'mtr'],
+    capteur:     ['sensor', 'sonde'],
+    debitmetre:  ['debitmetre', 'debit', 'air flow', 'maf', 'mass air flow', 'bosch'],
+    injecteur:   ['injector', 'inj', 'injection'],
+    temperature: ['temp', 'heat', 'chauffe']
+  };
+
+  function expandQueryWithSynonyms(q) {
+    if (!q) return [q];
+    const lower = q.toLowerCase().trim();
+    let expanded = [q];
+    for (const key in synonymMap) {
+      if (lower.includes(key) || key.includes(lower)) {
+        expanded = expanded.concat(synonymMap[key]);
+      }
+    }
+    return Array.from(new Set(expanded));
+  }
+
+  /* ----------------------------------
+     ذكاء اصطناعي عبر الإنترنت (اختياري)
+     قم بملء endpoint و API key الخاصين بك
+     يعمل فقط إذا كان navigator.onLine === true
+  ---------------------------------- */
+  async function callAISuggestions(query) {
+    // مثال توضيحي فقط - عدّل حسب سيرفرك
+    // ارجع مصفوفة عناصر: [{ref:"...", description:"...", image:""}, ...]
+    try {
+      // لا يوجد endpoint حقيقي؛ أعِد مصفوفة فارغة افتراضياً
+      return [];
+      /*
+      const resp = await fetch('https://YOUR_SERVER/ai-suggest', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'Authorization':'Bearer YOUR_API_KEY'},
+        body: JSON.stringify({query})
+      });
+      if (!resp.ok) throw new Error('AI API error');
+      const data = await resp.json();
+      return Array.isArray(data) ? data : [];
+      */
+    } catch(err) {
+      console.error('AI suggestion error:', err);
+      return [];
+    }
+  }
+
+  /* ----------------------------------
+     تلوين الجزء المتطابق (أزرق فاتح)
+  ---------------------------------- */
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  function highlightMatch(text, query) {
+    if (!query) return text;
+    const safe = escapeRegExp(query);
+    const regex = new RegExp(`(${safe})`, 'gi');
+    return text.replace(regex, '<span style="color:#3399ff; font-weight:bold;">$1</span>');
+  }
+
+  /* ----------------------------------
+     عرض النتائج مع الذكاء الإصطناعي
+     تسلسل:
+       1) بحث مباشر (filter empty => كل شيء)
+       2) بحث Fuse (ذكاء محلي)
+       3) إن لم توجد نتائج ومحاولة AI (إنترنت)
+  ---------------------------------- */
+  async function afficherResultats(filter='') {
     resultsDiv.innerHTML = '';
-    const searchLower = filter.toLowerCase();
-    const filtered = pieces.filter(item =>
-      item.ref.toLowerCase().includes(searchLower) ||
-      item.description.toLowerCase().includes(searchLower)
-    );
-    if (filtered.length === 0) {
+    let itemsToShow = [];
+    
+    if (!filter) {
+      itemsToShow = pieces;
+    } else if (fuse) {
+      // بحث ضبابي
+      const fuseResults = fuse.search(filter);
+      if (fuseResults.length > 0) {
+        itemsToShow = fuseResults.map(r => r.item);
+      } else {
+        // محاولة توسيع البحث بالمرادفات محلياً
+        const expandedTerms = expandQueryWithSynonyms(filter);
+        let gathered = new Set();
+        expandedTerms.forEach(term => {
+          const r = fuse.search(term);
+          r.forEach(x => gathered.add(x.item));
+        });
+        if (gathered.size > 0) {
+          itemsToShow = Array.from(gathered);
+        } else if (navigator.onLine) {
+          // محاولة ذكاء اصطناعي سحابي (اختياري)
+          const ai = await callAISuggestions(filter);
+          if (ai.length > 0) {
+            itemsToShow = ai;
+          }
+        }
+      }
+    } else {
+      // إن لم يُبن fuse بعد
+      itemsToShow = pieces;
+    }
+
+    if (!itemsToShow || itemsToShow.length === 0) {
       resultsDiv.innerHTML = '<p style="color:#777;text-align:center;">Aucun résultat trouvé.</p>';
       return;
     }
-    filtered.forEach(item => {
+
+    itemsToShow.forEach(item => {
       const div = document.createElement('div');
       div.className = 'result-item';
+      const refHTML = highlightMatch(item.ref, filter);
+      const descHTML = highlightMatch(item.description, filter);
       div.innerHTML = `
-        <img src="${item.image || 'https://via.placeholder.com/120x80?text=No+Image'}" width="120" height="80" style="object-fit:contain;">
-        <div style="flex-grow:1;">
-          <strong>Référence : ${item.ref}</strong><br>
-          <p>${item.description}</p>
+        <img src="${item.image || 'https://via.placeholder.com/120x80?text=No+Image'}"
+             width="120" height="80" style="object-fit:contain;">
+        <div style="flex-grow:1; color:#000;">
+          <strong>Référence : ${refHTML}</strong><br>
+          <p>${descHTML}</p>
         </div>
-        <button class="btn-delete" style="background:#cc3333; border:none; border-radius:6px; width:100px; height:30px; cursor:pointer;">Supprimer</button>
+        <button class="btn-delete"
+                style="background:#cc3333; border:none; border-radius:6px; width:100px; height:30px; cursor:pointer;">
+          Supprimer
+        </button>
       `;
       div.querySelector('.btn-delete').onclick = () => {
         if (confirm("Supprimer la pièce " + item.ref + " ?")) {
-          pieces = pieces.filter(p => p !== item);
-          saveToLocalStorage();
+          // ملاحظة: العناصر القادمة من AI لن تكون بالضرورة ضمن pieces
+          const idx = pieces.indexOf(item);
+          if (idx !== -1) {
+            pieces.splice(idx, 1);
+            saveToLocalStorage();
+            initFuse();
+          }
           afficherResultats(searchInput.value);
         }
       };
@@ -199,16 +336,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* ----------------------------------
+     إضافة قطعة جديدة (لا نمنع التكرار كما طلبت)
+  ---------------------------------- */
   btnAdd.onclick = () => {
-    const ref = document.getElementById('ref-input').value.trim();
+    const ref  = document.getElementById('ref-input').value.trim();
     const desc = document.getElementById('desc-input').value.trim();
     if (!ref || !desc) {
       alert('Veuillez remplir tous les champs.');
       return;
     }
-    // **حذفنا التحقق من التكرار**
     pieces.push({ ref, description: desc, image: imageBase64 });
     saveToLocalStorage();
+    initFuse();
     afficherResultats(searchInput.value);
     document.getElementById('ref-input').value = '';
     document.getElementById('desc-input').value = '';
@@ -218,6 +358,9 @@ document.addEventListener('DOMContentLoaded', () => {
     addForm.style.display = 'none';
   };
 
+  /* ----------------------------------
+     تحميل صورة Base64
+  ---------------------------------- */
   imgFileInput.onchange = () => {
     const file = imgFileInput.files[0];
     if (file) {
@@ -231,13 +374,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  /* ----------------------------------
+     بحث (زر + كتابة مباشرة)
+  ---------------------------------- */
   btnSearch.onclick = () => afficherResultats(searchInput.value);
   searchInput.addEventListener('keyup', () => afficherResultats(searchInput.value));
 
+  /* ----------------------------------
+     إظهار / إخفاء نموذج إضافة قطعة
+  ---------------------------------- */
   btnShowAdd.onclick = () => {
     addForm.style.display = addForm.style.display === 'block' ? 'none' : 'block';
   };
 
+  /* ----------------------------------
+     تنزيل JSON (نسخة احتياطية)
+  ---------------------------------- */
   btnDownload.onclick = () => {
     const blob = new Blob([JSON.stringify(pieces.length ? pieces : loadDefaultData(), null, 2)], { type: "application/json" });
     const link = document.createElement('a');
@@ -247,6 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
     saveToLocalStorage();
   };
 
+  /* ----------------------------------
+     استيراد JSON من ملف خارجي
+  ---------------------------------- */
   btnImport.onclick = () => fileInput.click();
 
   fileInput.onchange = () => {
@@ -259,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(data)) {
           pieces = data;
           saveToLocalStorage();
+          initFuse();
           afficherResultats();
           alert("Fichier chargé avec succès !");
         } else {
@@ -271,10 +427,14 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.readAsText(file);
   };
 
+  /* ----------------------------------
+     بدء التشغيل: تحميل من LocalStorage أو افتراضي
+  ---------------------------------- */
   if (!loadFromLocalStorage()) {
     pieces = loadDefaultData();
     saveToLocalStorage();
   }
+  initFuse();
   afficherResultats();
 });
 </script>
