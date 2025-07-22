@@ -1,3 +1,5 @@
+
+    
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -68,14 +70,39 @@
     border: 1px solid #ddd;
     border-radius: 8px;
   }
-  
-  #img-preview {
-    max-width: 120px;
-    margin-top: 10px;
-    display: none;
+
+  #img-preview-container > div {
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
     border-radius: 6px;
   }
-  
+
+  #img-preview-container img {
+    max-width: 120px;
+    display: block;
+    margin: 5px 0;
+    border-radius: 6px;
+  }
+
+  .img-ref {
+    width: 100%;
+    padding: 5px;
+    font-size: 14px;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+  }
+
+  .remove-btn {
+    background: #cc3333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
   .result-item {
     display: flex;
     gap: 10px;
@@ -87,7 +114,6 @@
   }
 </style>
 
-<!-- ذكاء اصطناعي محلي للبحث الضبابي (Fuzzy Search) -->
 <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
 </head>
 <body>
@@ -118,9 +144,9 @@
   <input type="text" id="ref-input" placeholder="Ex: 0280218002" /><br/>
   <label for="desc-input">Description</label>
   <input type="text" id="desc-input" placeholder="Description de la pièce" /><br/>
-  <label for="img-file-input">Image</label>
+  <label for="img-file-input">Images</label>
   <input type="file" id="img-file-input" accept="image/*" /><br/>
-  <img id="img-preview" />
+  <div id="img-preview-container"></div>
   <button id="btn-add" style="background:#007acc; width: 150px; height: 40px;">Valider</button>
 </div>
 
@@ -128,13 +154,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  /* ----------------------------------
-     بيانات ومرجع للعناصر
-  ---------------------------------- */
   let pieces = [];
-  let imageBase64 = '';
-  let fuse = null;          // محرك البحث الذكي
-  let fuseThreshold = 0.3;  // دقة البحث (أقل = أدق، أعلى = أشمل)
+  let imageBase64List = [];
+  let fuse = null;
+  let fuseThreshold = 0.3;
 
   const searchInput   = document.getElementById('search-input');
   const resultsDiv    = document.getElementById('results');
@@ -143,26 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAdd        = document.getElementById('btn-add');
   const addForm       = document.getElementById('add-form');
   const imgFileInput  = document.getElementById('img-file-input');
-  const imgPreview    = document.getElementById('img-preview');
-
+  const imgPreviewContainer = document.getElementById('img-preview-container');
   const btnDownload   = document.getElementById('btn-download');
   const btnImport     = document.getElementById('btn-import');
   const fileInput     = document.getElementById('file-input');
 
-  /* ----------------------------------
-     بيانات افتراضية (fallback)
-  ---------------------------------- */
   function loadDefaultData() {
     return [
-      { ref: "0280218002", description: "Débitmètre Bosch - capteur de masse d'air", image: "" },
-      { ref: "1234567890", description: "Capteur de température moteur", image: "" },
-      { ref: "9876543210", description: "Injecteur haute pression", image: "" }
+      { ref: "0280218002", description: "Débitmètre Bosch - capteur de masse d'air", images: [] },
+      { ref: "1234567890", description: "Capteur de température moteur", images: [] },
+      { ref: "9876543210", description: "Injecteur haute pression", images: [] }
     ];
   }
 
-  /* ----------------------------------
-     تخزين محلي
-  ---------------------------------- */
   function saveToLocalStorage() {
     localStorage.setItem('pieces', JSON.stringify(pieces));
   }
@@ -180,76 +196,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
-  /* ----------------------------------
-     ذكاء اصطناعي: بناء فهرس Fuse
-  ---------------------------------- */
   function initFuse() {
     fuse = new Fuse(pieces, {
       keys: ['ref', 'description'],
       includeScore: true,
-      threshold: fuseThreshold,  // يضبط مدى التسامح مع الأخطاء
+      threshold: fuseThreshold,
       ignoreLocation: true,
       minMatchCharLength: 1
     });
   }
 
-  /* ----------------------------------
-     خريطة مرادفات بسيطة (ذكاء محلي)
-     يمكنك توسيعها حسب الحاجة
-  ---------------------------------- */
-  const synonymMap = {
-    moteur:      ['engine', 'mot', 'mtr'],
-    capteur:     ['sensor', 'sonde'],
-    debitmetre:  ['debitmetre', 'debit', 'air flow', 'maf', 'mass air flow', 'bosch'],
-    injecteur:   ['injector', 'inj', 'injection'],
-    temperature: ['temp', 'heat', 'chauffe']
-  };
-
-  function expandQueryWithSynonyms(q) {
-    if (!q) return [q];
-    const lower = q.toLowerCase().trim();
-    let expanded = [q];
-    for (const key in synonymMap) {
-      if (lower.includes(key) || key.includes(lower)) {
-        expanded = expanded.concat(synonymMap[key]);
-      }
-    }
-    return Array.from(new Set(expanded));
-  }
-
-  /* ----------------------------------
-     ذكاء اصطناعي عبر الإنترنت (اختياري)
-     قم بملء endpoint و API key الخاصين بك
-     يعمل فقط إذا كان navigator.onLine === true
-  ---------------------------------- */
-  async function callAISuggestions(query) {
-    // مثال توضيحي فقط - عدّل حسب سيرفرك
-    // ارجع مصفوفة عناصر: [{ref:"...", description:"...", image:""}, ...]
-    try {
-      // لا يوجد endpoint حقيقي؛ أعِد مصفوفة فارغة افتراضياً
-      return [];
-      /*
-      const resp = await fetch('https://YOUR_SERVER/ai-suggest', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json', 'Authorization':'Bearer YOUR_API_KEY'},
-        body: JSON.stringify({query})
-      });
-      if (!resp.ok) throw new Error('AI API error');
-      const data = await resp.json();
-      return Array.isArray(data) ? data : [];
-      */
-    } catch(err) {
-      console.error('AI suggestion error:', err);
-      return [];
-    }
-  }
-
-  /* ----------------------------------
-     تلوين الجزء المتطابق (أزرق فاتح)
-  ---------------------------------- */
   function escapeRegExp(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
+
   function highlightMatch(text, query) {
     if (!query) return text;
     const safe = escapeRegExp(query);
@@ -257,44 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return text.replace(regex, '<span style="color:#3399ff; font-weight:bold;">$1</span>');
   }
 
-  /* ----------------------------------
-     عرض النتائج مع الذكاء الإصطناعي
-     تسلسل:
-       1) بحث مباشر (filter empty => كل شيء)
-       2) بحث Fuse (ذكاء محلي)
-       3) إن لم توجد نتائج ومحاولة AI (إنترنت)
-  ---------------------------------- */
   async function afficherResultats(filter='') {
     resultsDiv.innerHTML = '';
     let itemsToShow = [];
-    
+
     if (!filter) {
       itemsToShow = pieces;
     } else if (fuse) {
-      // بحث ضبابي
       const fuseResults = fuse.search(filter);
       if (fuseResults.length > 0) {
         itemsToShow = fuseResults.map(r => r.item);
-      } else {
-        // محاولة توسيع البحث بالمرادفات محلياً
-        const expandedTerms = expandQueryWithSynonyms(filter);
-        let gathered = new Set();
-        expandedTerms.forEach(term => {
-          const r = fuse.search(term);
-          r.forEach(x => gathered.add(x.item));
-        });
-        if (gathered.size > 0) {
-          itemsToShow = Array.from(gathered);
-        } else if (navigator.onLine) {
-          // محاولة ذكاء اصطناعي سحابي (اختياري)
-          const ai = await callAISuggestions(filter);
-          if (ai.length > 0) {
-            itemsToShow = ai;
-          }
-        }
       }
     } else {
-      // إن لم يُبن fuse بعد
       itemsToShow = pieces;
     }
 
@@ -308,12 +242,21 @@ document.addEventListener('DOMContentLoaded', () => {
       div.className = 'result-item';
       const refHTML = highlightMatch(item.ref, filter);
       const descHTML = highlightMatch(item.description, filter);
+
+      let imagesHTML = '';
+      if (item.images && item.images.length > 0) {
+        imagesHTML = item.images.map(obj => `
+          <div style="margin-bottom:5px;">
+            <img src="${obj.base64}" width="120" height="80" style="object-fit:contain;"><br>
+            <small style="color:#333;">Réf: ${obj.ref || '-'}</small>
+          </div>`).join('');
+      }
+
       div.innerHTML = `
-        <img src="${item.image || 'https://via.placeholder.com/120x80?text=No+Image'}"
-             width="120" height="80" style="object-fit:contain;">
-        <div style="flex-grow:1; color:#000;">
-          <strong>Référence : ${refHTML}</strong><br>
+        <div style="display:flex;flex-direction:column;flex-grow:1; color:#000;">
+          <strong>Référence : ${refHTML}</strong>
           <p>${descHTML}</p>
+          <div>${imagesHTML}</div>
         </div>
         <button class="btn-delete"
                 style="background:#cc3333; border:none; border-radius:6px; width:100px; height:30px; cursor:pointer;">
@@ -322,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       div.querySelector('.btn-delete').onclick = () => {
         if (confirm("Supprimer la pièce " + item.ref + " ?")) {
-          // ملاحظة: العناصر القادمة من AI لن تكون بالضرورة ضمن pieces
           const idx = pieces.indexOf(item);
           if (idx !== -1) {
             pieces.splice(idx, 1);
@@ -336,9 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ----------------------------------
-     إضافة قطعة جديدة (لا نمنع التكرار كما طلبت)
-  ---------------------------------- */
   btnAdd.onclick = () => {
     const ref  = document.getElementById('ref-input').value.trim();
     const desc = document.getElementById('desc-input').value.trim();
@@ -346,50 +285,63 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Veuillez remplir tous les champs.');
       return;
     }
-    pieces.push({ ref, description: desc, image: imageBase64 });
+    pieces.push({ ref, description: desc, images: imageBase64List });
     saveToLocalStorage();
     initFuse();
     afficherResultats(searchInput.value);
     document.getElementById('ref-input').value = '';
     document.getElementById('desc-input').value = '';
+    imgPreviewContainer.innerHTML = '';
+    imageBase64List = [];
     imgFileInput.value = '';
-    imgPreview.style.display = 'none';
-    imageBase64 = '';
     addForm.style.display = 'none';
   };
 
-  /* ----------------------------------
-     تحميل صورة Base64
-  ---------------------------------- */
   imgFileInput.onchange = () => {
-    const file = imgFileInput.files[0];
-    if (file) {
+    const files = Array.from(imgFileInput.files);
+    files.forEach(file => {
       const reader = new FileReader();
       reader.onload = e => {
-        imageBase64 = e.target.result;
-        imgPreview.src = imageBase64;
-        imgPreview.style.display = 'block';
+        const base64 = e.target.result;
+        const imageObj = { base64, ref: "" };
+        imageBase64List.push(imageObj);
+
+        const imgWrapper = document.createElement('div');
+        const img = document.createElement('img');
+        img.src = base64;
+
+        const inputRef = document.createElement('input');
+        inputRef.type = "text";
+        inputRef.placeholder = "Numéro de l'image";
+        inputRef.className = "img-ref";
+        inputRef.oninput = () => {
+          imageObj.ref = inputRef.value;
+        };
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = "Supprimer";
+        removeBtn.className = "remove-btn";
+        removeBtn.onclick = () => {
+          imgWrapper.remove();
+          imageBase64List = imageBase64List.filter(i => i !== imageObj);
+        };
+
+        imgWrapper.appendChild(img);
+        imgWrapper.appendChild(inputRef);
+        imgWrapper.appendChild(removeBtn);
+        imgPreviewContainer.appendChild(imgWrapper);
       };
       reader.readAsDataURL(file);
-    }
+    });
+    imgFileInput.value = '';
   };
 
-  /* ----------------------------------
-     بحث (زر + كتابة مباشرة)
-  ---------------------------------- */
   btnSearch.onclick = () => afficherResultats(searchInput.value);
   searchInput.addEventListener('keyup', () => afficherResultats(searchInput.value));
-
-  /* ----------------------------------
-     إظهار / إخفاء نموذج إضافة قطعة
-  ---------------------------------- */
   btnShowAdd.onclick = () => {
     addForm.style.display = addForm.style.display === 'block' ? 'none' : 'block';
   };
 
-  /* ----------------------------------
-     تنزيل JSON (نسخة احتياطية)
-  ---------------------------------- */
   btnDownload.onclick = () => {
     const blob = new Blob([JSON.stringify(pieces.length ? pieces : loadDefaultData(), null, 2)], { type: "application/json" });
     const link = document.createElement('a');
@@ -399,11 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveToLocalStorage();
   };
 
-  /* ----------------------------------
-     استيراد JSON من ملف خارجي
-  ---------------------------------- */
   btnImport.onclick = () => fileInput.click();
-
   fileInput.onchange = () => {
     const file = fileInput.files[0];
     if (!file) return alert("Aucun fichier sélectionné.");
@@ -427,9 +375,6 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.readAsText(file);
   };
 
-  /* ----------------------------------
-     بدء التشغيل: تحميل من LocalStorage أو افتراضي
-  ---------------------------------- */
   if (!loadFromLocalStorage()) {
     pieces = loadDefaultData();
     saveToLocalStorage();
