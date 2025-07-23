@@ -11,16 +11,31 @@
   #search-container {
     max-width: 600px;
     margin: 0 auto 20px auto;
+    display: flex;
+    gap: 8px;
   }
   
   input[type="text"] {
-    width: 100%;
+    flex: 1;
     padding: 10px;
     font-size: 16px;
     border: 1px solid #ddd;
     border-radius: 6px;
     box-sizing: border-box;
-    margin-bottom: 10px;
+  }
+
+  #btn-voice {
+    background-color: #ff4d4d;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   #buttons-wrapper {
@@ -122,6 +137,7 @@
 
 <div id="search-container">
   <input type="text" id="search-input" placeholder="Numéro de pièce ou description..." />
+  <button id="btn-voice" title="Recherche vocale">🎤</button>
 </div>
 
 <div id="buttons-wrapper">
@@ -162,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput   = document.getElementById('search-input');
   const resultsDiv    = document.getElementById('results');
   const btnSearch     = document.getElementById('btn-search');
+  const btnVoice      = document.getElementById('btn-voice');
   const btnShowAdd    = document.getElementById('btn-show-add');
   const btnAdd        = document.getElementById('btn-add');
   const addForm       = document.getElementById('add-form');
@@ -280,6 +297,25 @@ document.addEventListener('DOMContentLoaded', () => {
       resultsDiv.appendChild(div);
     });
   }
+
+  // Recherche vocale
+  btnVoice.addEventListener('click', () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert("La recherche vocale n'est pas supportée par votre navigateur.");
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      searchInput.value = transcript;
+      afficherResultats(transcript);
+    };
+  });
 
   btnAdd.onclick = () => {
     const ref  = document.getElementById('ref-input').value.trim();
