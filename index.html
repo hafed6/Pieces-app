@@ -110,6 +110,8 @@
     border-radius: 8px;
     margin-bottom: 10px;
   }
+
+  .highlight { color: #3399ff; font-weight: bold; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
@@ -155,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let pieces = [];
   let imageBase64List = [];
   let fuse = null;
+  let fuseThreshold = 0.4;
 
   const searchInput   = document.getElementById('search-input');
   const resultsDiv    = document.getElementById('results');
@@ -171,8 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadDefaultData() {
     return [
       { ref: "0280218002", description: "Débitmètre Bosch - capteur de masse d'air", images: [] },
-      { ref: "1234567890", description: "Joint culasse Peugeot Partner M59 DW8B", images: [] },
-      { ref: "9876543210", description: "Injecteur haute pression", images: [] }
+      { ref: "1234567890", description: "Joint culasse Peugeot Partner M59 DW8B 1.9", images: [] },
+      { ref: "9876543210", description: "Injecteur haute pression", images: [] },
+      { ref: "5558887777", description: "Joint culasse Citroën Berlingo M59 DW8B", images: [] }
     ];
   }
 
@@ -197,13 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fuse = new Fuse(pieces, {
       keys: ['ref', 'description'],
       includeScore: true,
-      threshold: 0.3,
+      threshold: fuseThreshold,
       ignoreLocation: true,
-      distance: 100,
-      minMatchCharLength: 2,
-      findAllMatches: true,
-      tokenize: true,
-      matchAllTokens: true
+      distance: 100
     });
   }
 
@@ -213,24 +213,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function highlightMatch(text, query) {
     if (!query) return text;
-    const words = query.split(/\s+/).map(w => escapeRegExp(w));
-    const regex = new RegExp(`(${words.join('|')})`, 'gi');
-    return text.replace(regex, '<span style="color:#3399ff; font-weight:bold;">$1</span>');
+    const words = query.split(/\s+/).filter(w => w.length > 1);
+    words.forEach(w => {
+      const regex = new RegExp(`(${escapeRegExp(w)})`, 'gi');
+      text = text.replace(regex, '<span class="highlight">$1</span>');
+    });
+    return text;
+  }
+
+  function advancedSearch(query) {
+    const words = query.toLowerCase().split(/\s+/).filter(w => w);
+    if (!words.length) return pieces;
+    const fuseResults = fuse.search(query).map(r => r.item);
+    return fuseResults.filter(item => {
+      const text = (item.ref + " " + item.description).toLowerCase();
+      return words.every(w => text.includes(w));
+    });
   }
 
   async function afficherResultats(filter='') {
     resultsDiv.innerHTML = '';
-    let itemsToShow = [];
-
-    if (!filter) {
-      itemsToShow = pieces;
-    } else if (fuse) {
-      const query = filter.trim();
-      const fuseResults = fuse.search(query);
-      itemsToShow = fuseResults.map(r => r.item);
-    } else {
-      itemsToShow = pieces;
-    }
+    const itemsToShow = advancedSearch(filter);
 
     if (!itemsToShow.length) {
       resultsDiv.innerHTML = '<p style="color:#777;text-align:center;">Aucun résultat trouvé.</p>';
@@ -243,10 +246,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const refHTML = highlightMatch(item.ref, filter);
       const descHTML = highlightMatch(item.description, filter);
 
+      let imagesHTML = '';
+      if (item.images && item.images.length > 0) {
+        imagesHTML = item.images.map(obj => `
+          <div style="margin-bottom:5px;">
+            <img src="${obj.base64}" width="120" height="80" style="object-fit:contain;"><br>
+            <small style="color:#333;">Réf: ${obj.ref || '-'}</small>
+          </div>`).join('');
+      }
+
       div.innerHTML = `
         <div style="display:flex;flex-direction:column;flex-grow:1; color:#000;">
           <strong>Référence : ${refHTML}</strong>
           <p>${descHTML}</p>
+          <div>${imagesHTML}</div>
         </div>
         <button class="btn-delete"
                 style="background:#cc3333; border:none; border-radius:6px; width:100px; height:30px; cursor:pointer;">
@@ -327,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   btnSearch.onclick = () => afficherResultats(searchInput.value);
-  searchInput.addEventListener('input', () => afficherResultats(searchInput.value));
+  searchInput.addEventListener('keyup', () => afficherResultats(searchInput.value));
   btnShowAdd.onclick = () => {
     addForm.style.display = addForm.style.display === 'block' ? 'none' : 'block';
   };
@@ -376,6 +389,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
-
-
-
