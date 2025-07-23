@@ -93,9 +93,9 @@
     border-radius: 6px;
     box-sizing: border-box;
     margin-bottom: 12px;
-    min-height: 120px;  /* تكبير ارتفاع الخانة */
-    resize: vertical;    /* يمكن تغيير حجم الخانة */
-    line-height: 1.5;    /* لتحسين المسافات بين الأسطر */
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.5;
   }
 
   #btn-add {
@@ -149,6 +149,38 @@
   }
 
   .highlight { color: #3399ff; font-weight: bold; }
+
+  #confirm-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  #confirm-modal > div {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 300px;
+    text-align: center;
+  }
+  #confirm-modal p {
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  #confirm-modal button {
+    border: none;
+    border-radius: 5px;
+    padding: 8px 20px;
+    margin: 0 10px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  #confirm-yes { background-color: #28a745; color: white; }
+  #confirm-no { background-color: #cc3333; color: white; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
@@ -190,6 +222,14 @@
 
 <div id="results"></div>
 
+<div id="confirm-modal">
+  <div>
+    <p id="confirm-text"></p>
+    <button id="confirm-yes">Oui</button>
+    <button id="confirm-no">Non</button>
+  </div>
+</div>
+
 <script>
   let pieces = JSON.parse(localStorage.getItem('piecesData')) || [];
   const resultsDiv = document.getElementById('results');
@@ -208,10 +248,47 @@
       resultsDiv.innerHTML = '<p>Aucun résultat trouvé.</p>';
       return;
     }
-    data.forEach(item => {
+    data.forEach((item) => {
       const div = document.createElement('div');
       div.className = 'result-item';
-      div.innerHTML = `<strong>${item.ref}</strong> - ${item.description}`;
+
+      let imagesHTML = '';
+      if (item.images && item.images.length > 0) {
+        imagesHTML = '<div style="display:flex;gap:5px;align-items:center;">' + 
+          item.images.map(img => `<img src="${img.src}" style="max-width:60px; border-radius:4px;" title="${img.ref || ''}" />`).join('') +
+        '</div>';
+      }
+
+      div.innerHTML = `
+        <div style="flex:1;">
+          <strong>${item.ref}</strong> - ${item.description}
+          ${imagesHTML}
+        </div>
+        <button class="delete-btn" style="background:#cc3333; color:#fff; border:none; border-radius:4px; padding:6px 10px; cursor:pointer;">Supprimer</button>
+      `;
+
+      div.querySelector('.delete-btn').addEventListener('click', () => {
+        const modal = document.getElementById('confirm-modal');
+        const confirmText = document.getElementById('confirm-text');
+        const btnYes = document.getElementById('confirm-yes');
+        const btnNo = document.getElementById('confirm-no');
+
+        confirmText.textContent = `Supprimer la pièce "${item.ref}" ?`;
+        modal.style.display = 'flex';
+
+        btnYes.onclick = () => {
+          pieces.splice(pieces.indexOf(item), 1);
+          saveToLocalStorage();
+          fuse = new Fuse(pieces, fuseOptions);
+          displayResults(pieces);
+          modal.style.display = 'none';
+        };
+
+        btnNo.onclick = () => {
+          modal.style.display = 'none';
+        };
+      });
+
       resultsDiv.appendChild(div);
     });
   }
@@ -234,12 +311,23 @@
       alert('Veuillez remplir tous les champs');
       return;
     }
-    pieces.push({ ref: ref, description: desc });
+
+    const imgContainers = document.querySelectorAll('#img-preview-container > div');
+    const images = [];
+    imgContainers.forEach(div => {
+      const img = div.querySelector('img').src;
+      const refImg = div.querySelector('.img-ref').value;
+      images.push({ src: img, ref: refImg });
+    });
+
+    pieces.push({ ref, description: desc, images });
     fuse = new Fuse(pieces, fuseOptions);
     saveToLocalStorage();
+
     alert('Pièce ajoutée');
     document.getElementById('ref-input').value = '';
     document.getElementById('desc-input').value = '';
+    document.getElementById('img-preview-container').innerHTML = '';
     document.getElementById('add-form').style.display = 'none';
   });
 
@@ -288,6 +376,31 @@
     };
     reader.readAsDataURL(file);
   });
+
+  // === Recherche vocale ===
+  const voiceBtn = document.getElementById('btn-voice');
+  if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    voiceBtn.addEventListener('click', () => {
+      recognition.start();
+    });
+
+    recognition.onresult = (event) => {
+      searchInput.value = event.results[0][0].transcript;
+    };
+
+    recognition.onerror = (event) => {
+      alert("Erreur de la reconnaissance vocale: " + event.error);
+    };
+  } else {
+    voiceBtn.addEventListener('click', () => {
+      alert("La recherche vocale n'est pas supportée par ce navigateur.");
+    });
+  }
 </script>
 
 </body>
