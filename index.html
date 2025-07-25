@@ -1,123 +1,74 @@
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Recherche de pièce détachée</title>
-<style>
-  body { font-family: Arial, sans-serif; background: #fff; margin: 20px; color: #000; }
-  h1 { text-align: center; color: #007acc; margin-bottom: 30px; }
-
-  #search-container {
-    max-width: 600px;
-    margin: 0 auto 20px auto;
-    display: flex;
-    gap: 8px;
-  }
-  input[type="text"], textarea {
-    flex: 1;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-sizing: border-box;
-  }
-  #btn-voice {
-    background-color: #ff4d4d;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    color: white;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #buttons-wrapper {
-    max-width: 400px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-  }
-  .button-column {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  button {
-    padding: 0;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    color: white;
-    font-size: 16px;
-    width: 150px;
-    height: 40px;
-    line-height: 40px;
-    text-align: center;
-  }
-  #btn-search { background-color: #3399ff; }
-  #btn-download { background-color: #ff9800; }
-  #btn-import { background-color: #673ab7; }
-  #btn-show-add { background-color: #28a745; }
-  #results {
-    max-width: 600px;
-    margin: 30px auto;
-  }
-  .result-item {
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-  }
-  .highlight { color: #3399ff; font-weight: bold; }
-
-  #add-form {
-    display: none;
-    max-width: 600px;
-    margin: 20px auto;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-  }
-  #ref-input, #desc-input {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    min-height: 50px;
-    resize: vertical;
-  }
-  #btn-add {
-    background: #007acc;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    width: 150px;
-    height: 40px;
-    cursor: pointer;
-  }
-  #img-preview-container img {
-    max-width: 100px;
-    margin: 5px;
-    border-radius: 6px;
-  }
-  .remove-img-btn {
-    background: #cc3333;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 12px;
-    margin-top: 5px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recherche de pièce détachée</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff; margin: 20px; color: #000; }
+    h1 { text-align: center; color: #007acc; margin-bottom: 30px; }
+    #search-container { max-width: 600px; margin: 0 auto 20px auto; display: flex; gap: 8px; }
+    input[type="text"], textarea {
+      flex: 1; padding: 10px; font-size: 16px;
+      border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
+    }
+    #btn-voice {
+      background-color: #ff4d4d; border: none; border-radius: 50%;
+      width: 40px; height: 40px; cursor: pointer; color: white; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #buttons-wrapper {
+      max-width: 400px; margin: 0 auto;
+      display: flex; justify-content: space-between; gap: 20px;
+    }
+    .button-column {
+      display: flex; flex-direction: column; gap: 15px;
+    }
+    button {
+      border: none; border-radius: 6px; cursor: pointer; color: white;
+      font-size: 16px; width: 150px; height: 40px; text-align: center;
+    }
+    #btn-search { background-color: #3399ff; }
+    #btn-download { background-color: #ff9800; }
+    #btn-import { background-color: #673ab7; }
+    #btn-show-add { background-color: #28a745; }
+    #results {
+      max-width: 600px; margin: 30px auto;
+    }
+    .result-item {
+      border: 1px solid #ccc; padding: 10px;
+      border-radius: 8px; margin-bottom: 10px;
+    }
+    .highlight { color: #3399ff; font-weight: bold; }
+    #add-form {
+      display: none; max-width: 600px;
+      margin: 20px auto; padding: 10px;
+      border: 1px solid #ddd; border-radius: 8px;
+    }
+    #ref-input, #desc-input {
+      width: 100%; padding: 10px; font-size: 16px;
+      border: 1px solid #ddd; border-radius: 6px;
+      margin-bottom: 12px; min-height: 50px; resize: vertical;
+    }
+    #btn-add {
+      background: #007acc; color: white; border: none;
+      border-radius: 6px; width: 150px; height: 40px; cursor: pointer;
+    }
+    #img-preview-container img {
+      max-width: 100px; margin: 5px; border-radius: 6px;
+    }
+    .remove-img-btn {
+      background: #cc3333; color: #fff;
+      border: none; border-radius: 4px;
+      padding: 4px 8px; cursor: pointer;
+      font-size: 12px; margin-top: 5px;
+    }
+  </style>
 </head>
 <body>
 
@@ -139,7 +90,7 @@
   </div>
 </div>
 
-<input type="file" id="file-input" accept="application/json" style="display:none;" />
+<input type="file" id="file-input" accept=".json" style="display:none;" />
 
 <div id="add-form">
   <label for="ref-input">Numéro de pièce</label>
@@ -157,144 +108,221 @@
 <div id="results"></div>
 
 <script>
-  let pieces = JSON.parse(localStorage.getItem('piecesData')) || [];
-  const resultsDiv = document.getElementById('results');
-  const searchInput = document.getElementById('search-input');
-  const imgPreviewContainer = document.getElementById('img-preview-container');
-  let selectedImages = [];
+  let db;
+  const request = indexedDB.open("piecesDB", 1);
 
-  function saveToLocalStorage() {
-    localStorage.setItem('piecesData', JSON.stringify(pieces));
-  }
-
-  function highlightMatch(text, keywords) {
-    if (!keywords.length) return text;
-    let pattern = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    let regex = new RegExp(`(${pattern})`, 'ig');
-    return text.replace(regex, '<span class="highlight">$1</span>');
-  }
-
-  function displayResults(data, keywords = []) {
-    resultsDiv.innerHTML = '';
-    if (data.length === 0) {
-      resultsDiv.innerHTML = '<p>Aucun résultat trouvé.</p>';
-      return;
+  request.onupgradeneeded = function(e) {
+    db = e.target.result;
+    if (!db.objectStoreNames.contains("pieces")) {
+      db.createObjectStore("pieces", { keyPath: "id", autoIncrement: true });
     }
-    data.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'result-item';
-      let imagesHTML = '';
-      if (item.images && item.images.length > 0) {
-        imagesHTML = item.images.map(src => `<img src="${src}" alt="image">`).join('');
-      }
-      div.innerHTML = `
-        <div>
-          <strong>${highlightMatch(item.ref, keywords)}</strong> - 
-          ${highlightMatch(item.description, keywords)}
-          <div>${imagesHTML}</div>
-        </div>
-        <button class="delete-btn" style="background:#cc3333;color:#fff;padding:5px 8px;border:none;border-radius:4px;cursor:pointer;">Supprimer</button>
-      `;
-      div.querySelector('.delete-btn').addEventListener('click', () => {
-        if (confirm("Supprimer cette pièce ?")) {
-          pieces.splice(index, 1);
-          saveToLocalStorage();
-          displayResults(pieces);
-        }
-      });
-      resultsDiv.appendChild(div);
-    });
-  }
+  };
 
-  function smartSearch(query) {
-    if (!query) return [];
-    const keywords = query.toLowerCase().split(/\s+/).filter(k => k);
-    return pieces.filter(piece => {
-      return keywords.every(k =>
-        piece.ref.toLowerCase().includes(k) || piece.description.toLowerCase().includes(k)
-      );
-    });
-  }
+  request.onsuccess = function(e) {
+    db = e.target.result;
+    displayResults();
+  };
 
-  document.getElementById('btn-search').addEventListener('click', () => {
-    const query = searchInput.value.trim();
-    const keywords = query.toLowerCase().split(/\s+/).filter(k => k);
-    displayResults(smartSearch(query), keywords);
-  });
+  request.onerror = function(e) {
+    alert("Erreur IndexedDB: " + e.target.errorCode);
+  };
 
-  document.getElementById('btn-show-add').addEventListener('click', () => {
-    document.getElementById('add-form').style.display = 'block';
-  });
-
-  document.getElementById('btn-add').addEventListener('click', () => {
+  async function addPiece() {
     const ref = document.getElementById('ref-input').value.trim();
-    const desc = document.getElementById('desc-input').value.trim();
-    if (!ref || !desc) {
+    const description = document.getElementById('desc-input').value.trim();
+
+    if (!ref || !description) {
       alert('Veuillez remplir tous les champs');
       return;
     }
-    pieces.push({ ref, description: desc, images: selectedImages });
-    saveToLocalStorage();
-    alert('Pièce ajoutée');
-    document.getElementById('ref-input').value = '';
-    document.getElementById('desc-input').value = '';
-    imgPreviewContainer.innerHTML = '';
-    selectedImages = [];
-    document.getElementById('add-form').style.display = 'none';
-    displayResults(pieces);
-  });
 
-  document.getElementById('btn-download').addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pieces, null, 2));
-    const dlAnchor = document.createElement('a');
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", "pieces.json");
-    dlAnchor.click();
-  });
+    // جمع الصور من واجهة الإضافة
+    const imgDivs = document.querySelectorAll('#img-preview-container > div');
+    const images = [];
 
-  document.getElementById('btn-import').addEventListener('click', () => {
+    for (const div of imgDivs) {
+      const src = div.querySelector('img').src;
+      const note = div.querySelector('.image-note').value;
+      images.push({ src, note });
+    }
+
+    const transaction = db.transaction(['pieces'], 'readwrite');
+    const store = transaction.objectStore('pieces');
+
+    const newPiece = { ref, description, images };
+    store.add(newPiece);
+
+    transaction.oncomplete = () => {
+      alert('Pièce ajoutée');
+      document.getElementById('ref-input').value = '';
+      document.getElementById('desc-input').value = '';
+      document.getElementById('img-preview-container').innerHTML = '';
+      document.getElementById('add-form').style.display = 'none';
+      displayResults();
+    };
+
+    transaction.onerror = () => {
+      alert('Erreur lors de l\'ajout');
+    };
+  }
+
+  function displayResults(filterKeywords = []) {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '';
+
+    const transaction = db.transaction(['pieces'], 'readonly');
+    const store = transaction.objectStore('pieces');
+
+    store.openCursor().onsuccess = function(event) {
+      const cursor = event.target.result;
+      if (cursor) {
+        const item = cursor.value;
+        const keywords = filterKeywords.length ? filterKeywords : [];
+        if (keywords.length === 0 || keywords.every(k =>
+          item.ref.toLowerCase().includes(k) || item.description.toLowerCase().includes(k)
+        )) {
+          let imagesHTML = '';
+          if (item.images && item.images.length) {
+            imagesHTML = item.images.map(img => `
+              <div style="display:inline-block;text-align:center;margin:5px;">
+                <img src="${img.src}" alt="image"><br/>
+                <small>${img.note || ''}</small>
+              </div>
+            `).join('');
+          }
+
+          const div = document.createElement('div');
+          div.className = 'result-item';
+          div.innerHTML = `
+            <div>
+              <strong>${highlight(item.ref, keywords)}</strong> - 
+              ${highlight(item.description, keywords)}
+              <div>${imagesHTML}</div>
+            </div>
+            <button class="delete-btn" style="background:#cc3333;color:#fff;padding:5px 8px;border:none;border-radius:4px;cursor:pointer;">Supprimer</button>
+          `;
+          div.querySelector('.delete-btn').onclick = () => {
+            if (confirm("Supprimer cette pièce ?")) {
+              const txDel = db.transaction(['pieces'], 'readwrite');
+              const storeDel = txDel.objectStore('pieces');
+              storeDel.delete(item.id);
+              txDel.oncomplete = () => displayResults(keywords);
+              txDel.onerror = () => alert("Erreur suppression");
+            }
+          };
+          resultsDiv.appendChild(div);
+        }
+        cursor.continue();
+      }
+    };
+  }
+
+  function highlight(text, keywords) {
+    if (!keywords.length) return text;
+    const regex = new RegExp(`(${keywords.join('|')})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+  }
+
+  document.getElementById('btn-search').onclick = () => {
+    const query = document.getElementById('search-input').value.trim().toLowerCase();
+    const keywords = query ? query.split(/\s+/) : [];
+    displayResults(keywords);
+  };
+
+  document.getElementById('btn-show-add').onclick = () => {
+    const form = document.getElementById('add-form');
+    form.style.display = form.style.display === 'block' ? 'none' : 'block';
+  };
+
+  document.getElementById('btn-add').onclick = addPiece;
+
+  document.getElementById('btn-download').onclick = () => {
+    const transaction = db.transaction(['pieces'], 'readonly');
+    const store = transaction.objectStore('pieces');
+    const allPieces = [];
+
+    store.openCursor().onsuccess = function(event) {
+      const cursor = event.target.result;
+      if (cursor) {
+        allPieces.push(cursor.value);
+        cursor.continue();
+      } else {
+        const blob = new Blob([JSON.stringify(allPieces, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pieces.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    };
+  };
+
+  document.getElementById('btn-import').onclick = () => {
     document.getElementById('file-input').click();
-  });
+  };
 
-  document.getElementById('file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
+  document.getElementById('file-input').addEventListener('change', function () {
+    const file = this.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(evt) {
+    reader.onload = function (e) {
       try {
-        pieces = JSON.parse(evt.target.result);
-        saveToLocalStorage();
-        alert('Fichier importé avec succès');
-        displayResults(pieces);
-      } catch (err) {
-        alert('Erreur lors de l\'import du fichier JSON');
+        const importedPieces = JSON.parse(e.target.result);
+        const transaction = db.transaction(['pieces'], 'readwrite');
+        const store = transaction.objectStore('pieces');
+
+        importedPieces.forEach(piece => {
+          delete piece.id; // لمنع التعارض مع المفتاح التلقائي
+          store.add(piece);
+        });
+
+        transaction.oncomplete = () => {
+          alert('Fichier JSON importé avec succès.');
+          displayResults();
+        };
+        transaction.onerror = () => alert('Erreur lors de l\'importation.');
+      } catch {
+        alert("Erreur lors de l'importation.");
       }
     };
     reader.readAsText(file);
   });
 
-  document.getElementById('img-file-input').addEventListener('change', (e) => {
-    const files = e.target.files;
-    for (let file of files) {
+  document.getElementById('img-file-input').addEventListener('change', function () {
+    const files = Array.from(this.files);
+    files.forEach(file => {
       const reader = new FileReader();
-      reader.onload = function(evt) {
-        const imgSrc = evt.target.result;
-        selectedImages.push(imgSrc);
-        const imgDiv = document.createElement('div');
-        imgDiv.innerHTML = `<img src="${imgSrc}"><br><button class="remove-img-btn">Supprimer</button>`;
-        imgDiv.querySelector('.remove-img-btn').addEventListener('click', () => {
-          selectedImages = selectedImages.filter(src => src !== imgSrc);
-          imgDiv.remove();
-        });
-        imgPreviewContainer.appendChild(imgDiv);
+      reader.onload = function (e) {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <img src="${e.target.result}" style="max-width:100px;"><br/>
+          <input type="text" placeholder="Note image" class="image-note"
+           style="width:90%;margin-top:5px;padding:4px;border:1px solid #ccc;border-radius:4px;"><br/>
+          <button class="remove-img-btn">Supprimer</button>
+        `;
+        div.querySelector('.remove-img-btn').onclick = () => div.remove();
+        document.getElementById('img-preview-container').appendChild(div);
       };
       reader.readAsDataURL(file);
-    }
+    });
   });
 
-  window.addEventListener('load', () => {
-    displayResults(pieces);
-  });
+  // تسجيل Service Worker لتشغيل التطبيق أوفلاين
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        console.log('Service Worker enregistré avec succès:', reg.scope);
+      }).catch(err => {
+        console.log('Erreur d\'enregistrement du Service Worker:', err);
+      });
+    });
+  }
+
+  window.onload = () => {
+    displayResults();
+  };
 </script>
 
 </body>
